@@ -60,11 +60,6 @@ public class DataUploadController {
 		}
 	}
 
-	@GetMapping("getAllJournalHeaders")
-	public List<journal_header> getAllJournalHeaders() {
-		return journalRepo.findAll();
-	}
-
 	@PostMapping("getJournal")
 	public ResponseEntity<JournalUploadRequestVO> getJournal(@RequestBody Map<String, String> reqParams) {
 		try {
@@ -78,46 +73,20 @@ public class DataUploadController {
 			return errorResponseVO.buildErrorResponse(e.getMessage(), "500");
 		}
 	}
+	
+	@GetMapping("getAllJournalHeaders")
+	public List<journal_header> getAllJournalHeaders() {
+		return journalRepo.findAll();
+	}
 
 	@PostMapping("submitJournal")
-	public ResponseVO submitJournal(@RequestBody Map<String, String> reqParams) {
-		ResponseVO resp = new ResponseVO();
+	public ResponseEntity<ResponseVO> submitJournal(@RequestBody Map<String, String> reqParams) {
 		try {
-			NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
-			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue("FILE_ID", reqParams.get("FILE_ID"));
-			params.addValue("WORKGROUP_NAME", reqParams.get("WORKGROUP_NAME"));
-			params.addValue("JOURNAL_STATUS", "P");
-			params.addValue("THRESHOLD_LIMIT", Integer.parseInt(reqParams.get("THRESHOLD_LIMIT")));
-
-			// get the approver
-			String query = "SELECT APPROVER_NAME FROM approvers WHERE WORKGROUP_NAME=:WORKGROUP_NAME AND THRESHOLD_LIMIT >= :THRESHOLD_LIMIT";
-			String approverName = namedJdbcTemplate.query(query, params, (ResultSet rs) -> {
-				rs.next();
-				return rs.getString("APPROVER_NAME");
-			});
-			System.out.println("======APPROVER NAME: " + approverName);
-			// update the work group and approver in header
-			if (approverName != null) {
-				params.addValue("PRIMARY_APPROVAR", approverName);
-				String query1 = "UPDATE journal_header SET WORKGROUP_NAME=:WORKGROUP_NAME, JOURNAL_STATUS=:JOURNAL_STATUS,PRIMARY_APPROVAR=:PRIMARY_APPROVAR WHERE FILE_ID=:FILE_ID";
-				namedJdbcTemplate.update(query1, params);
-				resp.setStatus(0);
-				resp.setMessage("Journal Submitted successfully");
-				resp.setStatusCode(approverName);
-			} else {
-				resp.setStatus(1);
-				resp.setMessage("No Approver for the selected workgroup");
-				resp.setStatusCode("500");
-			}
-			return resp;
-
+			ResponseVO resp = dataUploadService.submitJournal(reqParams.get("FILE_ID"), reqParams.get("WORKGROUP_NAME"),
+					reqParams.get("THRESHOLD_LIMIT"));
+			return ResponseEntity.ok(resp);
 		} catch (Exception e) {
-			resp.setStatus(1);
-			resp.setMessage("Something went wrong");
-			resp.setStatusCode("500");
-			resp.setData(e);
-			return resp;
+			return errorResponseVO.buildErrorResponse(e.getMessage(), "500");
 		}
 	}
 

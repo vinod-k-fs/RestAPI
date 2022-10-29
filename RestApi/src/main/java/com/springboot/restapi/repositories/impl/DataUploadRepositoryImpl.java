@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
 import com.springboot.restapi.repositories.DataUploadRepository;
+import com.springboot.restapi.utilities.ResponseVO;
 import com.springboot.restapi.vo.SampleHeader;
 import com.springboot.restapi.vo.SampleLine;
 
@@ -49,6 +50,7 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		});
 	}
 
+	@Override
 	public void saveLinesData(List<SampleLine> lines, SampleHeader header) {
 
 		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
@@ -96,6 +98,7 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		return header;
 	}
 
+	@Override
 	public List<SampleLine> getLinesData(String fileId) {
 		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -118,5 +121,30 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 			lines.add(line);
 		});
 		return lines;
+	}
+	
+	@Override
+	public ResponseVO submitJournal(String fileId, String workgroupName, String thresholdLimit) {
+		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("FILE_ID", fileId);
+		params.addValue("WORKGROUP_NAME", workgroupName);
+		params.addValue("JOURNAL_STATUS", "P");
+		params.addValue("THRESHOLD_LIMIT", Integer.parseInt(thresholdLimit));
+		String query = "SELECT APPROVER_NAME FROM approvers WHERE WORKGROUP_NAME=:WORKGROUP_NAME AND THRESHOLD_LIMIT >= :THRESHOLD_LIMIT";
+		String approverName = namedJdbcTemplate.query(query, params, (ResultSet rs) -> {
+			if (!rs.next()) {
+				return null;
+			}
+			return rs.getString("APPROVER_NAME");
+		});
+		if (approverName != null) {
+			params.addValue("PRIMARY_APPROVAR", approverName);
+			String query1 = "UPDATE journal_header SET WORKGROUP_NAME=:WORKGROUP_NAME, JOURNAL_STATUS=:JOURNAL_STATUS,PRIMARY_APPROVAR=:PRIMARY_APPROVAR WHERE FILE_ID=:FILE_ID";
+			namedJdbcTemplate.update(query1, params);
+			return new ResponseVO(0, "Success", "200");
+		} else {
+			return new ResponseVO(1, "No Approver for the selected workgroup", "500");
+		}
 	}
 }

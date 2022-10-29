@@ -35,5 +35,9 @@ public class DataUploadService {
 		List<SampleLine> lines = dataUploadRepositoryImpl.getLinesData(fileId);
 		return lines;
 	}
-	
+
+	public ResponseVO submitJournal(String fileId, String workgroupName, String thresholdLimit) {
+		ResponseVO resp = dataUploadRepositoryImpl.submitJournal(fileId, workgroupName, thresholdLimit);
+		return resp;
+	}
 }
