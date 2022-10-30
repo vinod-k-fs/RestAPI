@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import com.springboot.restapi.constants.AppConstants;
 import com.springboot.restapi.mappers.SampleHeaderRowMapper;
 import com.springboot.restapi.mappers.SampleLineRowMapper;
 import com.springboot.restapi.repositories.DataUploadRepository;
@@ -34,15 +35,15 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		String fileId = header.getBusinessUnit() + "::" + header.getJournalId() + "::" + header.getJournalDate();
-		String query = "Select count(*) from  journal_header where FILE_ID = :FILE_ID";
+		String query = "Select count(*) from  "+AppConstants.HEADER_TABLE+" where FILE_ID = :FILE_ID";
 		param.addValue("FILE_ID", fileId);
 		int count = namedJdbcTemplate.query(query, param, (ResultSet rs) -> {
 			return rs.getInt(1);
 		});
 		if (count == 0) {
-			String headerQuery = "INSERT INTO journal_header "
-					+ "(JOURNAL_TYPE,BUSINESS_UNIT,JOURNAL_ID,JOURNAL_DATE,MAKER_ID,TOTAL_DEBIT_AMOUNT,TOTAL_CREDIT_AMOUNT,FILE_ID) "
-					+ "values(:JOURNAL_TYPE,:BUSINESS_UNIT,:JOURNAL_ID,:JOURNAL_DATE,:MAKER_ID,:TOTAL_DEBIT_AMOUNT,:TOTAL_CREDIT_AMOUNT,:FILE_ID)";
+			String headerQuery = "INSERT INTO "+ AppConstants.HEADER_TABLE
+					+ " (JOURNAL_TYPE,BUSINESS_UNIT,JOURNAL_ID,JOURNAL_DATE,MAKER_ID,TOTAL_DEBIT_AMOUNT,TOTAL_CREDIT_AMOUNT,FILE_ID) "
+					+ " values(:JOURNAL_TYPE,:BUSINESS_UNIT,:JOURNAL_ID,:JOURNAL_DATE,:MAKER_ID,:TOTAL_DEBIT_AMOUNT,:TOTAL_CREDIT_AMOUNT,:FILE_ID)";
 			MapSqlParameterSource sqlParam = new MapSqlParameterSource();
 			param.addValue("JOURNAL_TYPE", header.getJournalType());
 			param.addValue("BUSINESS_UNIT", header.getBusinessUnit());
@@ -61,9 +62,9 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		String fileId = header.getBusinessUnit() + "::" + header.getJournalId() + "::" + header.getJournalDate();
 		for (SampleLine line : lines) {
-			String lineQuery = "INSERT INTO journal_lines "
-					+ "(BUSINESS_UNIT,ACCOUNT_NUM,PC_CODE,PRODUCT_CODE,GST_CODE,COUNTY_CODE,CURRENCY_CODE,CREDIT_AMOUNT,DEBIT_AMOUNT,FILE_ID) "
-					+ "values(:BUSINESS_UNIT,:ACCOUNT_NUM,:PC_CODE,:PRODUCT_CODE,:GST_CODE,:COUNTY_CODE,:CURRENCY_CODE,:CREDIT_AMOUNT,:DEBIT_AMOUNT,:FILE_ID)";
+			String lineQuery = "INSERT INTO "+AppConstants.LINES_TABLE
+					+ " (BUSINESS_UNIT,ACCOUNT_NUM,PC_CODE,PRODUCT_CODE,GST_CODE,COUNTY_CODE,CURRENCY_CODE,CREDIT_AMOUNT,DEBIT_AMOUNT,FILE_ID) "
+					+ " VALUES(:BUSINESS_UNIT,:ACCOUNT_NUM,:PC_CODE,:PRODUCT_CODE,:GST_CODE,:COUNTY_CODE,:CURRENCY_CODE,:CREDIT_AMOUNT,:DEBIT_AMOUNT,:FILE_ID)";
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue("BUSINESS_UNIT", line.getBusinessUnit());
 			param.addValue("ACCOUNT_NUM", line.getAccountNum());
@@ -84,7 +85,7 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("FILE_ID", fileId);
-		String query = "SELECT * FROM journal_header WHERE FILE_ID=:FILE_ID";
+		String query = "SELECT * FROM "+AppConstants.HEADER_TABLE+" WHERE FILE_ID=:FILE_ID";
 		return namedJdbcTemplate.query(query, param, sampleHeaderRowMapper);
 	}
 
@@ -93,7 +94,7 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("FILE_ID", fileId);
-		String query = "SELECT * FROM journal_lines WHERE FILE_ID=:FILE_ID";
+		String query = "SELECT * FROM "+AppConstants.LINES_TABLE+" WHERE FILE_ID=:FILE_ID";
 		return namedJdbcTemplate.query(query, param, sampleLineRowMapper);
 	}
 	
@@ -105,7 +106,7 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		params.addValue("WORKGROUP_NAME", workgroupName);
 		params.addValue("JOURNAL_STATUS", "P");
 		params.addValue("THRESHOLD_LIMIT", Integer.parseInt(thresholdLimit));
-		String query = "SELECT APPROVER_NAME FROM approvers WHERE WORKGROUP_NAME=:WORKGROUP_NAME AND THRESHOLD_LIMIT >= :THRESHOLD_LIMIT";
+		String query = "SELECT APPROVER_NAME FROM "+AppConstants.APPROVERS_TABLE+" WHERE WORKGROUP_NAME=:WORKGROUP_NAME AND THRESHOLD_LIMIT >= :THRESHOLD_LIMIT";
 		String approverName = namedJdbcTemplate.query(query, params, (ResultSet rs) -> {
 			if (!rs.next()) {
 				return null;
@@ -114,7 +115,7 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		});
 		if (approverName != null) {
 			params.addValue("PRIMARY_APPROVAR", approverName);
-			String query1 = "UPDATE journal_header SET WORKGROUP_NAME=:WORKGROUP_NAME, JOURNAL_STATUS=:JOURNAL_STATUS,PRIMARY_APPROVAR=:PRIMARY_APPROVAR WHERE FILE_ID=:FILE_ID";
+			String query1 = "UPDATE "+AppConstants.HEADER_TABLE+" SET WORKGROUP_NAME=:WORKGROUP_NAME, JOURNAL_STATUS=:JOURNAL_STATUS,PRIMARY_APPROVAR=:PRIMARY_APPROVAR WHERE FILE_ID=:FILE_ID";
 			return namedJdbcTemplate.update(query1, params);
 		} else {
 			return 0;
@@ -126,7 +127,7 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		NamedParameterJdbcTemplate namesJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		String query = "";
-		query = "SELECT APPROVER_NAME from approvers WHERE APPROVER_NAME = :APPROVER_NAME";
+		query = "SELECT APPROVER_NAME from "+AppConstants.APPROVERS_TABLE+" WHERE APPROVER_NAME = :APPROVER_NAME";
 		params.addValue("APPROVER_NAME", name);
 		boolean isAvailabale = namesJdbcTemplate.query(query, params, (ResultSet rs) -> {
 			if (rs.next() && rs.getString("APPROVER_NAME") != null) {
@@ -135,7 +136,7 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 			return false;
 		});
 		if (!isAvailabale) {
-			query = "INSERT INTO approvers (APPROVER_NAME,WORKGROUP_NAME,THRESHOLD_LIMIT,IS_ACTIVE) VALUES (:APPROVER_NAME,:WORKGROUP_NAME,:THRESHOLD_LIMIT,:IS_ACTIVE)";
+			query = "INSERT INTO "+AppConstants.APPROVERS_TABLE+" (APPROVER_NAME,WORKGROUP_NAME,THRESHOLD_LIMIT,IS_ACTIVE) VALUES (:APPROVER_NAME,:WORKGROUP_NAME,:THRESHOLD_LIMIT,:IS_ACTIVE)";
 			params.addValue("APPROVER_NAME", name);
 			params.addValue("WORKGROUP_NAME", workgroupName);
 			params.addValue("THRESHOLD_LIMIT", thresholdLimit);
@@ -150,7 +151,7 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("PRIMARY_APPROVAR", name);
-		String query = "SELECT * FROM journal_header WHERE PRIMARY_APPROVAR =:PRIMARY_APPROVAR";
+		String query = "SELECT * FROM "+AppConstants.HEADER_TABLE+" WHERE PRIMARY_APPROVAR =:PRIMARY_APPROVAR";
 		return namedJdbcTemplate.query(query, params, sampleHeaderRowMapper);
 	}
 	
@@ -162,7 +163,7 @@ public class DataUploadRepositoryImpl implements DataUploadRepository {
 		Date date = new Date();
 		params.addValue("date", date.toString());
 		params.addValue("JOURNAL_STATUS", "APPROVED");
-		String query = "UPDATE journal_header SET APPROVED_DATE=:date, JOURNAL_STATUS=:JOURNAL_STATUS WHERE FILE_ID =:FILE_ID";
+		String query = "UPDATE "+AppConstants.HEADER_TABLE+" SET APPROVED_DATE=:date, JOURNAL_STATUS=:JOURNAL_STATUS WHERE FILE_ID =:FILE_ID";
 		return namesJdbcTemplate.update(query, params);
 	}
 }
