@@ -1,5 +1,6 @@
 package com.springboot.restapi.services;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +28,12 @@ public class DataUploadService {
 	}
 
 	public SampleHeader getHeader(String fileId) {
-		SampleHeader header = dataUploadRepositoryImpl.getHeaderData(fileId);
-		return header;
+		List<SampleHeader> header = dataUploadRepositoryImpl.getHeaderData(fileId);
+		if (header.get(0) != null) {
+			return header.get(0);
+		} else {
+			return new SampleHeader();
+		}
 	}
 	
 	public List<SampleLine> getLines(String fileId){
@@ -37,7 +42,37 @@ public class DataUploadService {
 	}
 
 	public ResponseVO submitJournal(String fileId, String workgroupName, String thresholdLimit) {
-		ResponseVO resp = dataUploadRepositoryImpl.submitJournal(fileId, workgroupName, thresholdLimit);
-		return resp;
+		int status = dataUploadRepositoryImpl.submitJournal(fileId, workgroupName, thresholdLimit);
+		if (status == 1) {
+			return new ResponseVO(0, "Success", "200", null);
+		} else {
+			return new ResponseVO(1, "Failed to update", "500", null);
+		}
+	}
+	
+	public ResponseVO addApprover(String name, String workgroupName, String thresholdLimit, String isActive) {
+		int status = dataUploadRepositoryImpl.addApprover(name, workgroupName, thresholdLimit, isActive);
+		if (status == 1) {
+			return new ResponseVO(0, "Success", "200", null);
+		} else {
+			return new ResponseVO(1, "Failed to update", "500", null);
+		}
+	}
+	
+	public ResponseVO getSubmittedJournals(String name) {
+		List<SampleHeader> header = dataUploadRepositoryImpl.getSubmittedJournals(name);
+		JournalUploadRequestVO resp = new JournalUploadRequestVO();
+		resp.setHeader(header.get(0));
+		resp.setLine(new ArrayList());
+		return new ResponseVO(0, "Success", "200", resp);
+	}
+	
+	public ResponseVO approveJournal(String fileId) {
+		int status = dataUploadRepositoryImpl.approveJournal(fileId);
+		if (status == 1) {
+			return new ResponseVO(0, "Success", "200", null);
+		} else {
+			return new ResponseVO(1, "Failed to update", "500", null);
+		}
 	}
 }
